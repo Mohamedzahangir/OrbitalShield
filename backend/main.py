@@ -11,7 +11,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-)
+) 
 
 # Load TLE
 with open("tle.txt", "r") as f:
@@ -23,22 +23,45 @@ line2 = lines[2].strip()
 satellite = Satrec.twoline2rv(line1, line2)
 
 
-@app.get("/position")
-def get_position():
-    t = time.gmtime()
+@app.get("/positions")
+def get_positions():
+    import time
+    from sgp4.api import Satrec, jday
 
+    satellites_data = []
+
+    # Read TLE file
+    with open("tle.txt", "r") as f:
+        lines = [line.strip() for line in f.readlines() if line.strip()]
+
+    # Current time
+    t = time.gmtime()
     jd, fr = jday(
         t.tm_year, t.tm_mon, t.tm_mday,
         t.tm_hour, t.tm_min, t.tm_sec
     )
 
-    error, position, velocity = satellite.sgp4(jd, fr)
+    # Loop through TLE (every 3 lines = 1 satellite)
+    for i in range(0, len(lines), 3):
+        try:
+            name = lines[i]
+            line1 = lines[i + 1]
+            line2 = lines[i + 2]
 
-    if error == 0:
-        return {
-            "x": position[0],
-            "y": position[1],
-            "z": position[2]
-        }
-    else:
-        return {"error": "Calculation failed"}
+            sat = Satrec.twoline2rv(line1, line2)
+            error, position, velocity = sat.sgp4(jd, fr)
+
+            if error == 0:
+                satellites_data.append({
+                    "name": name,
+                    "x": position[0],
+                    "y": position[1],
+                    "z": position[2]
+                })
+
+        except Exception as e:
+            print("Error reading satellite:", e)
+
+    return satellites_data
+    
+    
