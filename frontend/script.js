@@ -14,7 +14,7 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// 🌍 Earth
+//  Earth
 const earth = new THREE.Mesh(
   new THREE.SphereGeometry(200, 32, 32),
   new THREE.MeshBasicMaterial({ wireframe: true })
@@ -23,11 +23,11 @@ scene.add(earth);
 
 camera.position.set(0, 0, 800);
 
-// 🛰 Storage
+//  Storage
 const satellites = [];
 const trails = [];
 
-// 🚀 Create satellite
+//  Create satellite
 function createSatellite(color) {
   const sat = new THREE.Mesh(
     new THREE.SphereGeometry(10, 16, 16),
@@ -49,22 +49,22 @@ function createSatellite(color) {
 }
 
 
-// 🎨 Create multiple satellites
+//  Create multiple satellites
 createSatellite(0xff0000);
 createSatellite(0x00ff00);
 createSatellite(0x0000ff);
 
-// 📡 Update positions
+//  Update positions
 async function updatePositions() {
   try {
     const res = await fetch("http://127.0.0.1:8000/positions");
 
-    // ❌ If server responds but error status
+    //  If server responds but error status
     if (!res.ok) throw new Error("Server not responding");
 
     const data = await res.json();
 
-    // ✅ Hide error when backend works
+    //  Hide error when backend works
     hideError();
 
     const SCALE = 0.1;
@@ -100,17 +100,20 @@ async function updatePositions() {
       trail.line.geometry.setFromPoints(trail.points);
     });
 
+    resetColors();
+    checkCollisions();
+
   } catch (err) {
     console.error("Backend error:", err);
 
-    // 🔴 Show error popup when backend fails
+    //  Show error popup when backend fails
     showError();
   }
 }
-// ⏱ Call API every 1 sec (ONLY ONCE)
+//  Call API every 1 sec (ONLY ONCE)
 setInterval(updatePositions, 1000);
 
-// 🎬 Animation
+// Animation
 function animate() {
   requestAnimationFrame(animate);
 
@@ -128,4 +131,43 @@ function hideError() {
   document.getElementById("errorBox").style.display = "none";
 }
 
+// get distance
+function getDistance(a, b) {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  const dz = a.z - b.z;
+
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+//collision detection
+function checkCollisions() {
+  const THRESHOLD = 100; // tweak later
+
+  for (let i = 0; i < satellites.length; i++) {
+    for (let j = i + 1; j < satellites.length; j++) {
+
+      const pos1 = satellites[i].position;
+      const pos2 = satellites[j].position;
+
+      const dist = getDistance(pos1, pos2);
+
+      if (dist < THRESHOLD) {
+        console.log(`⚠️ Collision Risk: ${i} & ${j}`);
+
+        satellites[i].material.color.set(0xff0000);
+        satellites[j].material.color.set(0xff0000);
+      }
+    }
+  }
+}
+
+//reset colors after collision check
+function resetColors() {
+  const colors = [0xff0000, 0x00ff00, 0x0000ff];
+
+  satellites.forEach((sat, index) => {
+    sat.material.color.set(colors[index % colors.length]);
+  });
+}
 animate();
