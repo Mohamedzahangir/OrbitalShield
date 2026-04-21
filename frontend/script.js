@@ -102,6 +102,7 @@ async function updatePositions() {
 
     resetColors();
     checkCollisions();
+    checkFutureCollisions(data);
 
   } catch (err) {
     console.error("Backend error:", err);
@@ -169,5 +170,36 @@ function resetColors() {
   satellites.forEach((sat, index) => {
     sat.material.color.set(colors[index % colors.length]);
   });
+}
+
+//predict position
+function predictPosition(sat, timeAhead = 10) {
+  return {
+    x: sat.x + sat.vx * timeAhead,
+    y: sat.y + sat.vy * timeAhead,
+    z: sat.z + sat.vz * timeAhead
+  };
+}
+
+//check future collisions
+function checkFutureCollisions(data) {
+  const THRESHOLD = 100;
+
+  for (let i = 0; i < data.length; i++) {
+    for (let j = i + 1; j < data.length; j++) {
+
+      const future1 = predictPosition(data[i], 10);
+      const future2 = predictPosition(data[j], 10);
+
+      const dist = getDistance(future1, future2);
+
+      if (dist < THRESHOLD) {
+        console.log(`🚨 FUTURE COLLISION: ${i} & ${j}`);
+
+        satellites[i].material.color.set(0xff0000);
+        satellites[j].material.color.set(0xff0000);
+      }
+    }
+  }
 }
 animate();

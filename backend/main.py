@@ -58,13 +58,6 @@ def get_positions():
                     "y": position[1],
                     "z": position[2]
                 })
-            if len(satellites_data) == 1:
-                satellites_data.append({
-                    "name": "CLONE",
-                    "x": position[0] + 5,   # very close
-                    "y": position[1] + 5,
-                    "z": position[2] + 5
-                })
         except Exception as e:
             print("Error reading satellite:", e)
 
